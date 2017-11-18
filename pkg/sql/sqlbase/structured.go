@@ -2262,6 +2262,8 @@ func DatumTypeToColumnSemanticType(ptyp types.T) (ColumnType_SemanticType, error
 		return ColumnType_TIMESTAMP, nil
 	case types.TimestampTZ:
 		return ColumnType_TIMESTAMPTZ, nil
+	case types.TsRange:
+		return ColumnType_TSRANGE, nil
 	case types.Interval:
 		return ColumnType_INTERVAL, nil
 	case types.UUID:

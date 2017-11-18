@@ -105,6 +105,8 @@ func DatumTypeToColumnType(t types.T) (T, error) {
 		types.RegProcedure,
 		types.RegType:
 		return OidTypeToColType(t), nil
+	case types.TsRange:
+		return TsRange, nil
 	}
 
 	switch typ := t.(type) {
@@ -166,6 +168,8 @@ func CastTargetToDatumType(t CastTargetType) types.T {
 		return types.IntVector
 	case *TOid:
 		return TOidToType(ct)
+	case *TTsRange:
+		return types.TsRange
 	default:
 		panic(fmt.Sprintf("unexpected CastTarget %T", t))
 	}

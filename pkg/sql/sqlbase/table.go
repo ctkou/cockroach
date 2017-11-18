@@ -123,6 +123,7 @@ func populateTypeAttrs(
 	case *coltypes.TTime:
 	case *coltypes.TTimestamp:
 	case *coltypes.TTimestampTZ:
+	case *coltypes.TTsRange:
 	case *coltypes.TInterval:
 	case *coltypes.TUUID:
 	case *coltypes.TIPAddr:

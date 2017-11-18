@@ -113,6 +113,7 @@ var (
 
 	// Oid is an immutable T instance.
 	Oid = &TOid{Name: "OID"}
+
 	// RegClass is an immutable T instance.
 	RegClass = &TOid{Name: "REGCLASS"}
 	// RegNamespace is an immutable T instance.
@@ -123,6 +124,9 @@ var (
 	RegProcedure = &TOid{Name: "REGPROCEDURE"}
 	// RegType is an immutable T instance.
 	RegType = &TOid{Name: "REGTYPE"}
+
+	// TsRange is an immutable T instance.
+	TsRange = &TTsRange{Name: "TSRANGE" }
 )
 
 var errBitLengthNotPositive = pgerror.NewError(pgerror.CodeInvalidParameterValueError, "length for type bit must be at least 1")

@@ -68,6 +68,8 @@ var (
 	Timestamp T = tTimestamp{}
 	// TimestampTZ is the type of a DTimestampTZ. Can be compared with ==.
 	TimestampTZ T = tTimestampTZ{}
+	// TsRANGE is the type of a DTsRange. Can be compared with ==.
+	TsRange T = tTsRange{}
 	// Interval is the type of a DInterval. Can be compared with ==.
 	Interval T = tInterval{}
 	// JSON is the type of a DJSON. Can be compared with ==.
@@ -94,6 +96,7 @@ var (
 		Time,
 		Timestamp,
 		TimestampTZ,
+		TsRange,
 		Interval,
 		UUID,
 		INet,
@@ -263,6 +266,17 @@ func (tTimestampTZ) FamilyEqual(other T) bool { return UnwrapType(other) == Time
 func (tTimestampTZ) Oid() oid.Oid             { return oid.T_timestamptz }
 func (tTimestampTZ) SQLName() string          { return "timestamp with time zone" }
 func (tTimestampTZ) IsAmbiguous() bool        { return false }
+
+type tTsRange struct{}
+
+func (tTsRange) String() string { return "tsrange" }
+func (tTsRange) Equivalent(other T) bool {
+	return UnwrapType(other) == TsRange || other == Any
+}
+func (tTsRange) FamilyEqual(other T) bool { return UnwrapType(other) == TsRange }
+func (tTsRange) Oid() oid.Oid             { return oid.T_tsrange }
+func (tTsRange) SQLName() string          { return "tsrange" }
+func (tTsRange) IsAmbiguous() bool        { return false }
 
 type tInterval struct{}
 

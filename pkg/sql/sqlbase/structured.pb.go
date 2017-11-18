@@ -77,6 +77,7 @@ const (
 	ColumnType_INET       ColumnType_SemanticType = 16
 	ColumnType_TIME       ColumnType_SemanticType = 17
 	ColumnType_JSON       ColumnType_SemanticType = 18
+	ColumnType_TSRANGE    ColumnType_SemanticType = 19
 	ColumnType_INT2VECTOR ColumnType_SemanticType = 200
 )
 
@@ -100,6 +101,7 @@ var ColumnType_SemanticType_name = map[int32]string{
 	16:  "INET",
 	17:  "TIME",
 	18:  "JSON",
+	19:  "TSRANGE",
 	200: "INT2VECTOR",
 }
 var ColumnType_SemanticType_value = map[string]int32{
@@ -122,6 +124,7 @@ var ColumnType_SemanticType_value = map[string]int32{
 	"INET":           16,
 	"TIME":           17,
 	"JSON":           18,
+	"TSRANGE":        19,
 	"INT2VECTOR":     200,
 }
 

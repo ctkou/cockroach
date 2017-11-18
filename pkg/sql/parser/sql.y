@@ -489,7 +489,7 @@ func (u *sqlSymUnion) scrubOption() tree.ScrubOption {
 
 %token <str>   TABLE TABLES TEMP TEMPLATE TEMPORARY TESTING_RANGES TESTING_RELOCATE TEXT THAN THEN
 %token <str>   TIME TIMESTAMP TIMESTAMPTZ TO TRAILING TRACE TRANSACTION TREAT TRIM TRUE
-%token <str>   TRUNCATE TYPE
+%token <str>   TRUNCATE TSRANGE TYPE
 
 %token <str>   UNBOUNDED UNCOMMITTED UNION UNIQUE UNKNOWN
 %token <str>   UPDATE UPSERT USE USER USERS USING UUID
@@ -824,7 +824,7 @@ func (u *sqlSymUnion) scrubOption() tree.ScrubOption {
 %type <*tree.NumVal> opt_float
 %type <coltypes.T> character const_character
 %type <coltypes.T> character_with_length character_without_length
-%type <coltypes.T> const_datetime const_interval const_json
+%type <coltypes.T> const_datetime const_interval const_json const_range
 %type <coltypes.T> bit const_bit bit_with_length bit_without_length
 %type <coltypes.T> character_base
 %type <coltypes.CastTargetType> postgres_oid
@@ -4858,6 +4858,7 @@ simple_typename:
 | bit
 | character
 | const_datetime
+| const_range
 | const_interval opt_interval // TODO(pmattis): Support opt_interval?
 | const_interval '(' ICONST ')' { return unimplemented(sqllex, "simple_type const_interval") }
 | const_json
@@ -5191,6 +5192,11 @@ const_datetime:
 | TIMESTAMP WITH_LA TIME ZONE
   {
     $$.val = coltypes.TimestampWithTZ
+  }
+
+const_range:
+  TSRANGE {
+    $$.val = coltypes.TsRange
   }
 
 const_interval:
@@ -6988,6 +6994,7 @@ col_name_keyword:
 | TIMESTAMPTZ
 | TREAT
 | TRIM
+| TSRANGE
 | UUID
 | VALUES
 | VARCHAR

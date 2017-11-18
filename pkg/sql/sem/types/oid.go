@@ -48,12 +48,14 @@ var (
 
 var (
 	// Unexported wrapper types. These exist for Postgres type compatibility.
-	typeInt2      = WrapTypeWithOid(Int, oid.T_int2)
-	typeInt4      = WrapTypeWithOid(Int, oid.T_int4)
-	typeFloat4    = WrapTypeWithOid(Float, oid.T_float4)
-	typeVarChar   = WrapTypeWithOid(String, oid.T_varchar)
-	typeInt2Array = TArray{typeInt2}
-	typeInt4Array = TArray{typeInt4}
+	typeInt2        = WrapTypeWithOid(Int, oid.T_int2)
+	typeInt4        = WrapTypeWithOid(Int, oid.T_int4)
+	typeFloat4      = WrapTypeWithOid(Float, oid.T_float4)
+	typeTsRange     = WrapTypeWithOid(TsRange, oid.T_tsrange)
+	typeVarChar     = WrapTypeWithOid(String, oid.T_varchar)
+	typeInt2Array   = TArray{typeInt2}
+	typeInt4Array   = TArray{typeInt4}
+	typeTsRangArray = TArray{typeTsRange}
 )
 
 // OidToType maps Postgres object IDs to CockroachDB types.  We export
@@ -102,6 +104,8 @@ var OidToType = map[oid.Oid]T{
 	oid.T__timestamp:   TArray{Timestamp},
 	oid.T_timestamptz:  TimestampTZ,
 	oid.T__timestamptz: TArray{TimestampTZ},
+	oid.T_tsrange:      typeTsRange,
+	oid.T__tsrange:     TArray{typeTsRange},
 	oid.T_uuid:         UUID,
 	oid.T__uuid:        TArray{UUID},
 	oid.T_inet:         INet,
@@ -143,6 +147,8 @@ var aliasedOidToName = map[oid.Oid]string{
 	oid.T__oid:         "_oid",
 	oid.T__timestamp:   "_timestamp",
 	oid.T__timestamptz: "_timestamptz",
+	oid.T_tsrange:      "tsrange",
+	oid.T__tsrange:     "_tsrange",
 	oid.T__uuid:        "_uuid",
 	oid.T__inet:        "_inet",
 	oid.T__varchar:     "_varchar",
@@ -166,6 +172,7 @@ var oidToArrayOid = map[oid.Oid]oid.Oid{
 	oid.T_time:        oid.T__time,
 	oid.T_timestamp:   oid.T__timestamp,
 	oid.T_timestamptz: oid.T__timestamptz,
+	oid.T_tsrange:     oid.T__tsrange,
 	oid.T_interval:    oid.T__interval,
 	oid.T_numeric:     oid.T__numeric,
 	oid.T_uuid:        oid.T__uuid,
