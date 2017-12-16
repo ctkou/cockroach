@@ -1839,6 +1839,257 @@ func (d *DTimestampTZ) Size() uintptr {
 	return unsafe.Sizeof(*d)
 }
 
+type Bound struct {
+	Val Datum
+	Infinite bool
+	Inclusive bool
+	Lower bool
+}
+
+func (b *Bound) infiniteUpperBound() bool {
+	return b.Infinite && !b.Lower
+}
+
+func (b *Bound) infiniteLowerBound() bool {
+	return b.Infinite && b.Lower
+}
+
+func (b *Bound) Compare(ctx *EvalContext, other *Bound) int {
+	// infinite bound vs infinite bound
+	if b.Infinite && other.Infinite {
+		// infinite lower bound vs infinite lower bound or 
+		// infinite upper bound vs infinite upper bound
+		if b.Lower == other.Lower {
+			return 0
+		// infinite upper bound vs infinite lower bound
+		} else if !b.Lower {
+			return 1
+		// infinite lower bound vs infinite upper bound
+		} else {
+			return -1
+		}
+	// infinite upper bound is always bigger than any finite bound,
+	// while infinite lower bound is always smaller than any finite bound
+	} else if b.infiniteUpperBound() || other.infiniteLowerBound() {
+		return 1
+	} else if b.infiniteLowerBound() || other.infiniteUpperBound() {
+		return -1
+	// finite bound vs finite bound
+	} else {
+		comp := b.Val.Compare(ctx, other.Val)
+		if comp == 0 {
+			if b.Lower == other.Lower {
+				return 0
+			// an upper bound is considered to be infinitestimally bigger
+			// than a lower bound of the same bound value
+			} else if !b.Lower {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		return comp
+	}
+}
+
+// DTsRange is the tsrange Datum.
+type DTsRange struct {
+	LeftBound *Bound
+	RightBound *Bound
+}
+
+func makeBound(value Datum, inclusive bool, lower bool) (*Bound) {
+	return &Bound{value, value == nil, inclusive, lower}
+}
+
+func parseBound(s string, expectLower bool) (*Bound, error) {
+	// empty string, or lacking of inclusivity
+	if len(s) == 0 ||
+	   (expectLower && s[0] != '[' && s[0] != '(') ||
+	   (!expectLower && s[len(s)-1] != ']' && s[len(s)-1] != ')') {
+		return nil, makeParseError(s, types.TsRange, nil)
+	}
+	var inclusivity bool
+	var datumString string
+	// find out inclusivity
+	if inclusivity = (s[len(s)-1] == ']'); expectLower {
+		inclusivity = (s[0] == '[')
+	}
+	// extract datum string
+	if datumString = s[0:len(s)-1]; expectLower {
+		datumString = s[1:]
+	}
+	// empty datum string means this is an infinite bound
+	if len(datumString) > 0 {
+		timestamp, err := ParseDTimestamp(datumString, time.Microsecond)
+		if err != nil {
+			return nil, makeParseError(datumString, types.Timestamp, err)
+		}
+		return makeBound(timestamp, inclusivity, expectLower), nil
+	}
+	return makeBound(nil, inclusivity, expectLower), nil
+}
+
+func parseBoundaries(s string) (*Bound, *Bound, error) {
+	boundaryStringSlice := strings.Split(s, ",")
+	if len(boundaryStringSlice) != 2 {
+		return nil, nil, makeParseError(s, types.TsRange, nil)
+	}
+	// parse left bound
+	leftBound, err := parseBound(strings.TrimSpace(boundaryStringSlice[0]), true)
+	if err != nil {
+		return nil, nil, makeParseError(boundaryStringSlice[0], types.TsRange, err)
+	}
+	// parse right bound
+	rightBound, err := parseBound(strings.TrimSpace(boundaryStringSlice[1]), false)
+	if err != nil {
+		return nil, nil, makeParseError(boundaryStringSlice[1], types.TsRange, err)
+	}
+	return leftBound, rightBound, nil
+}
+
+func ParseDTsRange(s string) (*DTsRange, error) {
+	left, right, err := parseBoundaries(s)
+	fmt.Printf( "left: %v\n", left )
+	fmt.Printf( "right: %v\n", right )
+	fmt.Printf( "error: %v\n", err )
+	if err != nil {
+		makeParseError(s, types.TsRange, err)
+	}
+	return &DTsRange{left, right}, nil
+}
+
+// ResolvedType implements the TypedExpr interface.
+func (*DTsRange) ResolvedType() types.T {
+	return types.TsRange
+}
+
+// Format implements the NodeFormatter interface.
+func (tsRange *DTsRange) Format(buf *bytes.Buffer, f FmtFlags) {
+	if !f.encodeFlags.BareStrings {
+		buf.WriteByte('\'')
+	}
+	// write left bound inclusivity
+	if tsRange.LeftBound.Inclusive {
+		buf.WriteByte('[')
+	} else {
+		buf.WriteByte('(')
+	}
+	// write left bound datum
+	if tsRange.LeftBound.Val != nil {
+		tsRange.LeftBound.Val.Format(buf, FmtBareStrings)
+	}
+	// write delimiter
+	buf.WriteByte(',')
+	// write right bound datum
+	if tsRange.RightBound.Val != nil {
+		tsRange.RightBound.Val.Format(buf, FmtBareStrings)
+	}
+	// write right bound inclusivity
+	if tsRange.RightBound.Inclusive {
+		buf.WriteByte(']')
+	} else {
+		buf.WriteByte(')')
+	}
+	if !f.encodeFlags.BareStrings {
+		buf.WriteByte('\'')
+	}
+}
+
+func (*DTsRange) AmbiguousFormat() bool {
+	return false
+}
+
+func (tsRange *DTsRange) Compare(ctx *EvalContext, other Datum) int {
+	if other == DNull {
+		// NULL is less than any non-NULL value.
+		return 1
+	}
+	v, ok := UnwrapDatum(ctx, other).(*DTsRange)
+	if !ok {
+		panic(makeUnsupportedComparisonMessage(tsRange, other))
+	}
+	// TODO
+	fmt.Printf( "other is %v\n", v )
+	return 0
+}
+
+// Prev returns the previous datum and true, if one exists, or nil and false.
+// The previous datum satisfies the following definition: if the receiver is
+// "b" and the returned datum is "a", then for every compatible datum "x", it
+// holds that "x < b" is true if and only if "x <= a" is true.
+//
+// The return value is undefined if IsMin(_ *EvalContext) returns true.
+//
+// TODO(#12022): for DTuple, the contract is actually that "x < b" (SQL order,
+// where NULL < x is unknown for all x) is true only if "x <= a"
+// (.Compare/encoding order, where NULL <= x is true for all x) is true. This
+// is okay for now: the returned datum is used only to construct a span, which
+// uses .Compare/encoding order and is guaranteed to be large enough by this
+// weaker contract. The original filter expression is left in place to catch
+// false positives.
+func (*DTsRange) Prev(ctx *EvalContext) (Datum, bool) {
+	// TODO
+	return nil, false
+}
+
+// IsMin returns true if the datum is equal to the minimum value the datum
+// type can hold.
+func (*DTsRange) IsMin(ctx *EvalContext) bool {
+	// TODO
+	return false
+}
+
+// Next returns the next datum and true, if one exists, or nil and false
+// otherwise. The next datum satisfies the following definition: if the
+// receiver is "a" and the returned datum is "b", then for every compatible
+// datum "x", it holds that "x > a" is true if and only if "x >= b" is true.
+//
+// The return value is undefined if IsMax(_ *EvalContext) returns true.
+//
+// TODO(#12022): for DTuple, the contract is actually that "x > a" (SQL order,
+// where x > NULL is unknown for all x) is true only if "x >= b"
+// (.Compare/encoding order, where x >= NULL is true for all x) is true. This
+// is okay for now: the returned datum is used only to construct a span, which
+// uses .Compare/encoding order and is guaranteed to be large enough by this
+// weaker contract. The original filter expression is left in place to catch
+// false positives.
+func (*DTsRange) Next(ctx *EvalContext) (Datum, bool) {
+	// TODO
+	return nil, false
+}
+
+// IsMax returns true if the datum is equal to the maximum value the datum
+// type can hold.
+func (*DTsRange) IsMax(ctx *EvalContext) bool {
+	// TODO
+	return false
+}
+
+// Max returns the upper value and true, if one exists, otherwise
+// nil and false. Used By Prev().
+func (*DTsRange) Max(ctx *EvalContext) (Datum, bool) {
+	// TODO
+	return nil, false
+}
+
+// Min returns the lower value, if one exists, otherwise nil and
+// false. Used by Next().
+func (*DTsRange) Min(ctx *EvalContext) (Datum, bool) {
+	// TODO
+	return nil, false
+}
+
+// Size returns a lower bound on the total size of the receiver in bytes,
+// including memory that is pointed at (even if shared between Datum
+// instances) but excluding allocation overhead.
+//
+// It holds for every Datum d that d.Size().
+func (*DTsRange) Size() uintptr {
+	// TODO
+	return 0
+}
+
 // DInterval is the interval Datum.
 type DInterval struct {
 	duration.Duration
@@ -3064,6 +3315,8 @@ func DatumTypeSize(t types.T) (uintptr, bool) {
 
 	// All the primary types have fixed size information.
 	if bSzInfo, ok := baseDatumTypeSizes[t]; ok {
+		fmt.Printf( "t: %v\n", t )
+		fmt.Printf( "bSzInfo.sz: %v\n", bSzInfo.sz )
 		return bSzInfo.sz, bSzInfo.variable
 	}
 
@@ -3090,6 +3343,7 @@ var baseDatumTypeSizes = map[types.T]struct {
 	types.Time:        {unsafe.Sizeof(DTime(0)), fixedSize},
 	types.Timestamp:   {unsafe.Sizeof(DTimestamp{}), fixedSize},
 	types.TimestampTZ: {unsafe.Sizeof(DTimestampTZ{}), fixedSize},
+	types.TsRange:     {unsafe.Sizeof(DTsRange{}), fixedSize},
 	types.Interval:    {unsafe.Sizeof(DInterval{}), fixedSize},
 	types.JSON:        {unsafe.Sizeof(DJSON{}), variableSize},
 	types.UUID:        {unsafe.Sizeof(DUuid{}), fixedSize},

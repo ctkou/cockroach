@@ -2336,6 +2336,8 @@ func columnSemanticTypeToDatumType(c *ColumnType, k ColumnType_SemanticType) typ
 		return types.Timestamp
 	case ColumnType_TIMESTAMPTZ:
 		return types.TimestampTZ
+	case ColumnType_TSRANGE:
+		return types.TsRange
 	case ColumnType_INTERVAL:
 		return types.Interval
 	case ColumnType_UUID:
@@ -2364,6 +2366,7 @@ func columnSemanticTypeToDatumType(c *ColumnType, k ColumnType_SemanticType) typ
 // ToDatumType converts the ColumnType to the correct type, or nil if there is
 // no correspondence.
 func (c *ColumnType) ToDatumType() types.T {
+	fmt.Printf( "----> ToDatumType: c *ColumnType == %v\n", c )
 	switch c.SemanticType {
 	case ColumnType_ARRAY:
 		return types.TArray{Typ: columnSemanticTypeToDatumType(c, *c.ArrayContents)}

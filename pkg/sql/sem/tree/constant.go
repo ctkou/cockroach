@@ -66,10 +66,13 @@ func isConstant(expr Expr) bool {
 }
 
 func typeCheckConstant(c Constant, ctx *SemaContext, desired types.T) (TypedExpr, error) {
+	fmt.Printf( "typeCheckConstant - desired (function start): %v\n", desired )
 	avail := c.AvailableTypes()
+	fmt.Printf( "typeCheckConstant - avail: %v\n", avail )
 	if desired != types.Any {
 		for _, typ := range avail {
 			if desired.Equivalent(typ) {
+				fmt.Printf( "typeCheckConstant - desired: %v\n", desired )
 				return c.ResolveAsType(ctx, desired)
 			}
 		}
@@ -389,6 +392,7 @@ var (
 		types.Time,
 		types.Timestamp,
 		types.TimestampTZ,
+		types.TsRange,
 		types.Interval,
 		types.UUID,
 		types.INet,
@@ -447,6 +451,8 @@ func (expr *StrVal) DesirableTypes() []types.T {
 
 // ResolveAsType implements the Constant interface.
 func (expr *StrVal) ResolveAsType(ctx *SemaContext, typ types.T) (Datum, error) {
+	fmt.Printf( "ResolveAsType: expr == %v\n", expr )
+	fmt.Printf( "ResolveAsType: typ == %v\n", typ )
 	switch typ {
 	case types.String:
 		expr.resString = DString(expr.s)
@@ -480,6 +486,8 @@ func (expr *StrVal) ResolveAsType(ctx *SemaContext, typ types.T) (Datum, error) 
 		return ParseDTimestamp(expr.s, time.Microsecond)
 	case types.TimestampTZ:
 		return ParseDTimestampTZ(expr.s, ctx.getLocation(), time.Microsecond)
+	case types.TsRange:
+		return ParseDTsRange(expr.s)
 	case types.Interval:
 		return ParseDInterval(expr.s)
 	case types.UUID:

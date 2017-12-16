@@ -562,6 +562,9 @@ func (expr *DTimestamp) Walk(_ Visitor) Expr { return expr }
 func (expr *DTimestampTZ) Walk(_ Visitor) Expr { return expr }
 
 // Walk implements the Expr interface.
+func (expr *DTsRange) Walk(_ Visitor) Expr { return expr }
+
+// Walk implements the Expr interface.
 func (expr *DTuple) Walk(_ Visitor) Expr { return expr }
 
 // Walk implements the Expr interface.

@@ -3470,6 +3470,11 @@ func (t *DTimestampTZ) Eval(_ *EvalContext) (Datum, error) {
 }
 
 // Eval implements the TypedExpr interface.
+func (t *DTsRange) Eval(_ *EvalContext) (Datum, error) {
+	return t, nil
+}
+
+// Eval implements the TypedExpr interface.
 func (t *DTuple) Eval(_ *EvalContext) (Datum, error) {
 	return t, nil
 }

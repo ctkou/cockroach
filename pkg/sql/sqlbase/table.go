@@ -1671,10 +1671,15 @@ func checkElementType(paramType types.T, columnType ColumnType) error {
 func MarshalColumnValue(col ColumnDescriptor, val tree.Datum) (roachpb.Value, error) {
 	var r roachpb.Value
 
+	fmt.Printf( "--------> col ColumnDescriptor: %v\n", col )
+	fmt.Printf( "--------> val tree.Datum: %v\n", val )
+	fmt.Printf( "--------> r roachpb.Value: %v\n", r )
+
 	if val == tree.DNull {
 		return r, nil
 	}
 
+	fmt.Printf( "--------> col.Type.SemanticType: %v\n", col.Type.SemanticType )
 	switch col.Type.SemanticType {
 	case ColumnType_BOOL:
 		if v, ok := val.(*tree.DBool); ok {
@@ -1721,6 +1726,11 @@ func MarshalColumnValue(col ColumnDescriptor, val tree.Datum) (roachpb.Value, er
 			r.SetTime(v.Time)
 			return r, nil
 		}
+// 	case ColumnType_TSRANGE:
+// 		if v, ok := val.(*tree.DTsRange); ok {
+// 			r.SetTime(v.Time)
+// 			return r, nil
+// 		}
 	case ColumnType_TIMESTAMPTZ:
 		if v, ok := val.(*tree.DTimestampTZ); ok {
 			r.SetTime(v.Time)
@@ -1781,6 +1791,7 @@ func MarshalColumnValue(col ColumnDescriptor, val tree.Datum) (roachpb.Value, er
 			return r, nil
 		}
 	default:
+		fmt.Printf( "----------------------------------------------------> Adam 1\n" )
 		return r, errors.Errorf("unsupported column type: %s", col.Type.SemanticType)
 	}
 	return r, fmt.Errorf("value type %s doesn't match type %s of column %q",
@@ -2040,6 +2051,7 @@ func UnmarshalColumnValue(a *DatumAlloc, typ ColumnType, value roachpb.Value) (t
 		}
 		return a.NewDOid(tree.MakeDOid(tree.DInt(v))), nil
 	default:
+		fmt.Printf( "----------------------------------------------------> Adam 2\n" )
 		return nil, errors.Errorf("unsupported column type: %s", typ.SemanticType)
 	}
 }

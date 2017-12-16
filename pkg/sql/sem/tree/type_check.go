@@ -120,6 +120,7 @@ func TypeCheck(expr Expr, ctx *SemaContext, desired types.T) (TypedExpr, error) 
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf( "TypeCheck: desired == %v\n", desired )
 	return expr.TypeCheck(ctx, desired)
 }
 
@@ -771,6 +772,8 @@ func (expr *NumVal) TypeCheck(ctx *SemaContext, desired types.T) (TypedExpr, err
 
 // TypeCheck implements the Expr interface.
 func (expr *StrVal) TypeCheck(ctx *SemaContext, desired types.T) (TypedExpr, error) {
+	fmt.Printf( "(expr *StrVal) TypeCheck - expr: %v\n", expr )
+	fmt.Printf( "(expr *StrVal) TypeCheck - desired: %v\n", desired )
 	return typeCheckConstant(expr, ctx, desired)
 }
 
@@ -927,6 +930,10 @@ func (d *DTimestamp) TypeCheck(_ *SemaContext, _ types.T) (TypedExpr, error) { r
 // TypeCheck implements the Expr interface. It is implemented as an idempotent
 // identity function for Datum.
 func (d *DTimestampTZ) TypeCheck(_ *SemaContext, _ types.T) (TypedExpr, error) { return d, nil }
+
+// TypeCheck implements the Expr interface. It is implemented as an idempotent
+// identity function for Datum.
+func (d *DTsRange) TypeCheck(_ *SemaContext, _ types.T) (TypedExpr, error) { return d, nil }
 
 // TypeCheck implements the Expr interface. It is implemented as an idempotent
 // identity function for Datum.

@@ -109,6 +109,7 @@ func (p *planner) ValuesClause(
 			if len(desiredTypes) > i {
 				desired = desiredTypes[i]
 			}
+			fmt.Printf( "----> desired == %v\n", desired )
 			typedExpr, err := p.analyzeExpr(ctx, expr, nil, tree.IndexedVarHelper{}, desired, false, "")
 			if err != nil {
 				return nil, err
